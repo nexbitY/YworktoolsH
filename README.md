@@ -10,7 +10,8 @@
 3. [AI Agent 工具安装指南](#ai-agent-工具安装指南)
 4. [免费大模型 Token 调研](#免费大模型-token-调研)
 5. [新系统必装软件清单](#新系统必装软件清单)
-6. [声明](#声明)
+6. [内网白盒审计与渗透漏挖工具库](#内网白盒审计与渗透漏挖工具库)
+7. [声明](#声明)
 
 ---
 
@@ -263,6 +264,130 @@ sudo apt install build-essential curl jq httpie        # 编译链与调试抓�
 ### 五、其他建议
 
 - 两台 VM 装完基线后**先打 VMware 快照**，之后工具尽量用包管理器装，便于升级和回滚
+
+---
+
+## 内网白盒审计与渗透漏挖工具库
+
+> **场景**：完全离线的内网（air-gapped，无互联网），对已获取的 Java / .NET 内部系统（源码或 jar/war/dll 包）做白盒源码审计、逆向反编译审计、漏洞验证与 PoC 开发。所有工具均可**提前在互联网下载打包、移植进内网后离线运行**；AI 类工具均可**连接本地模型 API**（Ollama / vLLM 等 OpenAI 兼容端点）干活。
+>
+> **筛选标准**：仅收录官方仓库（GitHub API 于 2026-11 逐一核实 star 数与维护状态，杜绝山寨 fork 投毒）、社区公认、完全离线可用。停更/归档已如实标注。
+>
+> ⚠️ **全部工具仅限已授权的安全测试场景使用。**
+
+### 一、白盒 SAST 源码审计
+
+| 工具 | 链接 | star | 用途 | 离线用法 |
+|---|---|---|---|---|
+| **CodeQL** | [github/codeql](https://github.com/github/codeql)（CLI：[codeql-cli-binaries](https://github.com/github/codeql-cli-binaries)，v2.27.x） | 10.3k | Java/C# 深度污点分析，白盒天花板 | 下载 codeql **bundle 离线包**（自带 CLI+全部查询套件，无需联网）；内网 `codeql database create db --language=java` → `codeql database analyze db codeql/java-queries`；C# 建库需 Windows+MSBuild。**许可注意：仅开源项目/安全研究免费，商用需 GitHub 许可** |
+| **Semgrep OSS** | [semgrep/semgrep](https://github.com/semgrep/semgrep)（v1.184） | 17.6k | 快速规则扫描 + OSS 污点分析（Java） | 外网 `pip download semgrep -d pkgs` + clone [semgrep-rules](https://github.com/semgrep/semgrep-rules)；内网 `pip install --no-index --find-links=pkgs semgrep` 后 `semgrep --config /rules --metrics=off src/`。**C# 跨文件分析为付费 Pro，内网不可用**（单文件规则可用） |
+| **Joern** | [joernio/joern](https://github.com/joernio/joern)（v4.x） | 3.6k | CPG 代码属性图 + 自定义 Scala 查询，Java 白盒利器 | 下载 release zip **解压即用**（勿用联网安装脚本），需 JDK；`./joern-parse src/ && ./joern --script audit.sc`；C# 前端需另装 dotnetastgen（建议锁版本） |
+| **Tabby** | [tabby-sec/tabby](https://github.com/tabby-sec/tabby)（原 wh1t3p1g/tabby 已迁移） | 1.7k | Java jar/war/class 生成 CPG，Cypher 查污点链/反序列化链，SRC 社区知名 | release jar + 本地 Neo4j Community（可离线装）+ JDK；`java -jar tabby.jar --ci tabby.yml` 后用 Cypher 查询 |
+| **FindSecBugs** | [find-sec-bugs/find-sec-bugs](https://github.com/find-sec-bugs/find-sec-bugs)（1.14.0） | 2.5k | Java 字节码级安全扫描（含 Kotlin/Scala），无需源码构建 | 搭配 SpotBugs CLI：`spotbugs -textui -pluginList findsecbugs-plugin.jar app.jar`，全本地 |
+| **Security Code Scan** | [security-code-scan/security-code-scan](https://github.com/security-code-scan/security-code-scan)（5.6.x） | 1k | .NET（C#/VB）Roslyn 安全分析器 | nupkg 预下载 + 本地 NuGet 源，`dotnet build` 触发。**2024-07 起停更**（VS2022 用社区 fork，NuGet 搜 `SecurityCodeScan.VS2022`），规则偏旧 |
+| **DevSkim** | [microsoft/DevSkim](https://github.com/microsoft/DevSkim)（CLI v1.0.x） | 1k | 微软官方轻量危险 API/密码学扫描（多语言） | CLI 自带规则集，`devskim analyze -f sarif src/` 纯本地 |
+
+### 二、反编译 / 逆向（拿包审计）
+
+| 工具 | 链接 | star | 用途 | 离线用法 |
+|---|---|---|---|---|
+| **jadx** | [skylot/jadx](https://github.com/skylot/jadx)（1.5.x） | 51.7k | Java jar/war 反编译首选，维护最勤 | zip 免安装，`jadx -d out app.jar` |
+| **Recaf** | [Col-E/Recaf](https://github.com/Col-E/Recaf)（2.x 稳定 / 4.0-alpha） | 7.5k | Java 字节码反编译+编辑器（改 class 重打包） | zip 免安装，2.x 用 Java 11+，4.x 需 Java 22+ |
+| **Vineflower** | [Vineflower/vineflower](https://github.com/Vineflower/vineflower)（1.12.x） | 2.5k | Fernflower 维护分支（原版已停维护），反编译质量最佳，已入 IntelliJ | `java -jar vineflower.jar in.jar out/` |
+| **CFR** | [leibnitz27/cfr](https://github.com/leibnitz27/cfr)（0.152） | 2.7k | Java 17+ 新语法支持好 | `java -jar cfr.jar app.jar` |
+| （JD-GUI / Procyon） | [java-decompiler/jd-gui](https://github.com/java-decompiler/jd-gui) | 15.2k | 老牌但已停更（JD-GUI 2024-07 / Procyon 2022 起），对新语法差，仅作备用 | 绿色免安装 |
+| **ILSpy + ilspycmd** | [icsharpcode/ILSpy](https://github.com/icsharpcode/ILSpy)（11.2） | 27k | .NET 反编译标准工具，最活跃 | GUI 版 zip 免安装；命令行批量：外网 `dotnet tool download` 取 nupkg，内网 `--add-source` 本地装，`ilspycmd app.dll -p -o out` |
+| **dnSpyEx** | [dnSpyEx/dnSpy](https://github.com/dnSpyEx/dnSpy)（6.5.x） | 11.5k | .NET 反编译 + 实时调试（原 dnSpy 已归档，Ex 分支活跃） | 绿色 zip 免安装 |
+| **de4dot → de4dotEx** | [de4dot/de4dot](https://github.com/de4dot/de4dot)（已归档）→ 官方维护分支 [GDATAAdvancedAnalytics/de4dotEx](https://github.com/GDATAAdvancedAnalytics/de4dotEx) | 7.4k / 307 | .NET 脱壳去混淆（处理 ConfuserEx 等加壳 dll） | 绿色免安装，`de4dot.exe app.dll` |
+
+### 三、依赖组件 CVE 审计（SCA）
+
+| 工具 | 链接 | star | 离线用法 |
+|---|---|---|---|
+| **Trivy** | [aquasecurity/trivy](https://github.com/aquasecurity/trivy)（v0.76） | 39.1k | 外网 `trivy image --download-db-only` + `--download-java-db-only` 导出 DB；内网放入缓存目录后 `trivy fs --skip-db-update --skip-java-db-update app.jar`（java-db 可识别 jar 内嵌依赖，也可扫 .NET 的 deps.json） |
+| **osv-scanner** | [google/osv-scanner](https://github.com/google/osv-scanner)（v2.7） | 11.5k | 外网 `osv-scanner update` 拉全 OSV 库打包；内网设 `OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY` + `--offline-vulnerabilities` |
+| **OWASP Dependency-Check** | [dependency-check/DependencyCheck](https://github.com/dependency-check/DependencyCheck)（v12，注意已迁新库） | 7.8k | 外网用 OpenVLK `vulnz` CLI 生成 NVD datafeed 打包；内网指向本地目录 + `--failOnUpdateErrors=false` |
+
+### 四、PoC 验证 / 内网扫描框架
+
+| 工具 | 链接 | star | 用途与离线用法 |
+|---|---|---|---|
+| **Nuclei** | [projectdiscovery/nuclei](https://github.com/projectdiscovery/nuclei)（v3.11）+ [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates) | 32.7k / 13.3k | 模板化漏洞验证与指纹识别，模板即 PoC。外网克隆模板库，内网 `nuclei -l targets.txt -t <模板目录> -duc`（`-duc` 禁止联网更新检查）；YAML 模板可自行为内部系统编写 |
+| **Pocsuite3** | [knownsec/pocsuite3](https://github.com/knownsec/pocsuite3)（3.9k★，注意仓库名全小写） | 3.9k | 知道创宇 404 实验室 PoC 框架，`POCBase` 规范化开发（verify/exploit 分离）。外网 `pip download pocsuite3 -d pkgs`，内网 `pip install --no-index --find-links=pkgs pocsuite3` |
+| **fscan** | [shadow1ng/fscan](https://github.com/shadow1ng/fscan)（v2.2.2） | 14.8k | 内网一键存活/端口/弱口令/漏洞扫描，单二进制零依赖。**极易滥用，严格限授权范围** |
+| **interactsh** | [projectdiscovery/interactsh](https://github.com/projectdiscovery/interactsh) | 4.6k | OOB 带外检测服务端——内网自建接收端（DNS/HTTP 回连验证 SSRF/盲注等），替代公网 oob 平台 |
+| **httpx** | [projectdiscovery/httpx](https://github.com/projectdiscovery/httpx) | 10.6k | 内网存活探测/标题/状态/技术栈识别，无外部依赖。（subfinder 依赖外网数据源，内网无效，故不列） |
+| （xray） | [chaitin/xray](https://github.com/chaitin/xray) | 11.8k | 长亭 Web 扫描器**社区版闭源**、更新基本停滞，不符合"开源可审计"标准，仅备查；开源替代用 Nuclei + ZAP |
+
+### 五、Java / .NET 漏洞链验证（仅限授权验证）
+
+| 工具 | 链接 | star | 用途 |
+|---|---|---|---|
+| **ysoserial** | [frohoff/ysoserial](https://github.com/frohoff/ysoserial) | 9.1k | Java 反序列化 payload 生成的事实标准；`java -jar ysoserial.jar CommonsCollections6 'cmd'`，常用链 CC1-7 / BeanUtils1 / Spring1-2 / JDK7u21 |
+| **JYso** | [qi4L/JYso](https://github.com/qi4L/JYso) | 1.8k | ysoserial + JNDIExploit 二合一（原 feihong-cs/JNDIExploit 已 404、镜像不可信），高版本 JDK 适配，404StarLink 成员；`java -jar JYso.jar` 起 LDAP/RMI |
+| **ysoserial.net** | [pwntester/ysoserial.net](https://github.com/pwntester/ysoserial.net)（v1.36） | 3.8k | .NET 反序列化 payload；`ysoserial.exe -g ObjectStateFormatter -c "cmd" -f raw`，含 LosFormatter/SoapFormatter/XmlSerializer/DataContractJson 等 gadget |
+| **viewgen** | [0xacb/viewgen](https://github.com/0xacb/viewgen) | 675 | ASP.NET ViewState 生成/签名/校验（配合 machineKey）；Python 实现，`pip download` 打包离线 |
+| **ShiroAttack2** | [SummerSec/ShiroAttack2](https://github.com/SummerSec/ShiroAttack2) | 2.6k | Apache Shiro 550/721 反序列化检测（key 爆破+回显），release jar 直接跑 |
+| **Fastjson 自检** | [safe6Sec/Fastjson](https://github.com/safe6Sec/Fastjson) | 1.9k | Fastjson 版本探测 + 历史漏洞自检 jar（2023-10 停更但功能稳定） |
+| **JNDI 注入验证** | [welk1n/JNDI-Injection-Exploit](https://github.com/welk1n/JNDI-Injection-Exploit) / [veracode-research/rogue-jndi](https://github.com/veracode-research/rogue-jndi) | 2.8k / 1.1k | 起 LDAP/RMI 服务验证 JNDI 注入（rogue-jndi 需外网 mvn 编译后带入） |
+| **Log4j2** | [fullhunt/log4j-scan](https://github.com/fullhunt/log4j-scan) / Burp 插件 [whwlsfb/Log4j2Scan](https://github.com/whwlsfb/Log4j2Scan) | 3.4k / 830 | CVE-2021-44228 检测；内网 OOB 回连需配合自建 interactsh 服务端 |
+
+### 六、Burp Suite 离线化 + 插件
+
+- **Burp Suite Community**：免费无需激活，[官网](https://portswigger.net/burp/communitydownload) jar 离线可跑；**BApp Store 在线商店内网不可用**——在外网手动下载插件 jar，内网 Extensions → Add → File 手动加载。
+- 推荐插件（均官方/原作者仓库）：**HaE**（[overspace-labs/HaE](https://github.com/overspace-labs/HaE)，4.4k★，信息高亮提取）、**Turbo Intruder**（[PortSwigger/turbo-intruder](https://github.com/PortSwigger/turbo-intruder)，1.8k★，高速 fuzz）、**Autorize**（[PortSwigger/autorize](https://github.com/PortSwigger/autorize)，越权检测）。
+- 全开源替代：**OWASP ZAP**（[zaproxy/zaproxy](https://github.com/zaproxy/zaproxy)，16.1k★，完全离线）。
+
+### 七、开发 / 复现环境离线化
+
+- **pwntools**（[Gallopsled/pwntools](https://github.com/Gallopsled/pwntools)，13.8k★）：PoC/Exploit 脚本开发库；`pip download pwntools -d pkgs` 离线打包（requests、httpx 等同理）。
+- **Vulhub**（[vulhub/vulhub](https://github.com/vulhub/vulhub)，21.5k★）：漏洞复现环境。外网 `docker compose -f vulhub/<组件>/compose.yml pull` → `docker save -o v.tar <镜像>`；内网 `docker load -i v.tar && docker compose up -d`（需预装 Docker+compose 插件）。
+
+### 八、AI 辅助审计（连接本地模型 API，完全离线）
+
+**本地推理底座**（外网下好模型权重，内网导入）：
+
+| 底座 | 链接 | star | 离线模型导入 |
+|---|---|---|---|
+| Ollama | [ollama/ollama](https://github.com/ollama/ollama) | 186.4k | `FROM ./x.gguf` + `ollama create`（gguf 单文件最好带内网） |
+| vLLM | [vllm-project/vllm](https://github.com/vllm-project/vllm) | 96.6k | 拷全模型目录 + `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1` 启动，OpenAI 兼容 :8000/v1 |
+| Xinference | [xorbitsai/inference](https://github.com/xorbitsai/inference) | 9.6k | docker save/load + register custom model 填 model_path |
+
+**适合本地部署做代码审计的模型**（按显存）：Qwen3-Coder-30B-A3B（Q4≈21GB，单 24G 卡）、Qwen2.5-Coder-32B（Q4≈20GB）/ 14B（≈9GB）、DeepSeek-Coder-V2-Lite-16B（≈11GB）、GLM-4-9B（Q4≈6GB）；长上下文审计需另留 KV cache 显存。
+
+**AI 工具（全部支持自定义 OpenAI 兼容端点）**：
+
+| 工具 | 链接 | star | 本地 API 配置要点 |
+|---|---|---|---|
+| **LiteLLM Proxy** | [BerriAI/litellm](https://github.com/BerriAI/litellm) | 62.9k | 本地 API 网关：config.yaml 里 `api_base` 指向 Ollama/vLLM，对外统一暴露 OpenAI 格式 ：4000/v1，`master_key` 管控；后端全本地即完全离线 |
+| **claude-code-router** | [musistudio/claude-code-router](https://github.com/musistudio/claude-code-router)（v3.1） | 38.1k | 把 **Claude Code 路由到任意自定义/本地 API**：网关(:3456)加 OpenAI 兼容 Provider 指向 `http://localhost:11434/v1`，Claude Code 全部请求走网关——内网用 Claude Code 干活的钥匙 |
+| **Aider** | [Aider-AI/aider](https://github.com/Aider-AI/aider) | 50k | `aider --model openai/<模型> --openai-api-base http://内网:8000/v1`（或 `ollama_chat/` 前缀）；AI 结对改代码/写 PoC |
+| **OpenCode** | [sst/opencode](https://github.com/sst/opencode)（已迁 anomalyco，旧地址仍有效） | 225.6k | opencode.json 配 ollama / openai-compatible provider，`baseURL` 指向本地端点 |
+| **Continue.dev** | [continuedev/continue](https://github.com/continuedev/continue) | 36.4k | IDE 插件（VS Code/JetBrains），config.yaml `provider: ollama` 或任意 openai-compatible `apiBase` |
+| **DeepAudit** | [lintsinghua/DeepAudit](https://github.com/lintsinghua/DeepAudit) | 7.3k | 中文社区多 Agent 代码审计 + 沙箱 PoC 验证，README 明示支持 Ollama 私有部署；AGPL |
+| **VulnHuntr** | [ProtectAI/vulnhuntr](https://github.com/ProtectAI/vulnhuntr) | 2.8k | LLM 白盒链式漏洞挖掘（**仅 Python 代码**）；`-l ollama` + `OLLAMA_BASE_URL`（官方标注实验性）；2025-02 后更新放缓 |
+
+### 九、安全 Skills 集合（Claude Code 类 CLI 通用，纯文本离线）
+
+装载方式：放 `~/.claude/skills/`（全局）或项目 `.claude/skills/`；zcode 读 `~/.zcode/skills/` 与 `~/.agents/skills/`，与 Claude skills 体系互通。
+
+| 集合 | 链接 | star | 内容 |
+|---|---|---|---|
+| **anthropics/skills** | [链接](https://github.com/anthropics/skills) | 189.9k | Anthropic 官方技能库（文档处理、webapp-testing、skill-creator 等），无渗透类 |
+| **obra/superpowers** | [链接](https://github.com/obra/superpowers) | 314.7k | 最流行的开发方法论 skills（TDD/调试/系统性计划），提升 agent 工程纪律 |
+| **wshobson/agents** | [链接](https://github.com/wshobson/agents) | 42.3k | 80+ 域 subagent 库，安全类：backend-api-security、security-scanning、incident-response、reverse-engineering 等 |
+| **zhaoxuya520/reverse-skill** | [链接](https://github.com/zhaoxuya520/reverse-skill) | 44.3k | 中文社区最火的逆向/渗透/安全技能路由包（中英双语，Claude Code/Kiro/Cursor 通用） |
+| **SnailSploit/Claude-Red** | [链接](https://github.com/SnailSploit/Claude-Red) | 10.5k | 渗透测试技能库（注入类漏洞→验证→PoC 开发流程），⚠️ 仅限授权环境 |
+| **mukul975/Anthropic-Cybersecurity-Skills** | [链接](https://github.com/mukul975/Anthropic-Cybersecurity-Skills) | 35.8k | 817 个安全技能，按 MITRE ATT&CK / NIST CSF 等框架映射 29 个域 |
+| **gadievron/raptor** | [链接](https://github.com/gadievron/raptor) | 4k | Claude Code 攻防一体 agent 配置（rules + sub-agents + skills） |
+| **NVIDIA/SkillSpector** | [链接](https://github.com/NVIDIA/SkillSpector) | 24.9k | **装任何第三方 skill 前的供应链/提示注入扫描器**——配合本仓库"无投毒"原则，第三方 skills 先过它再上车 |
+| （本仓库自带） | `files/claude/skills/clown-src-skill` | — | 漏洞测试知识库（各类漏洞测试方法），配合 `files/claude/rules/` 白盒/黑盒工作流使用 |
+
+### 离线移植总原则
+
+1. **外网备齐**：release 二进制 / jar / shaded 包、`pip download -d` wheels、`docker save` 镜像、模板与字典目录、JDK / .NET / Python 运行时、模型权重文件（gguf/safetensors）。
+2. **内网运行**：一律加离线开关——pip `--no-index`、nuclei `-duc`、trivy `--skip-db-update`、vLLM `HF_HUB_OFFLINE=1`，防止工具自动外联。
+3. **防投毒**：只从上表官方仓库下载 release；避免使用来历不明的镜像/fork；第三方 skills 用 SkillSpector 扫描后再装载。
 
 ---
 
