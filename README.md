@@ -373,6 +373,7 @@ sudo apt install build-essential curl jq httpie        # 编译链与调试抓�
 
 | 集合 | 链接 | star | 内容 |
 |---|---|---|---|
+| ⭐ **cloudflare/security-audit-skill** | [链接](https://github.com/cloudflare/security-audit-skill)（MIT） | 67.1k | **Cloudflare 安全团队官方出品**：把 Claude Code / Codex 类 agent 变成标准化安全审计员。六阶段流程：侦察（架构/信任边界/覆盖账本）→ 覆盖引导猎洞（隔离子agent）→ 候选验证（专门 verifier 尝试证伪）→ 结构化输出（findings.json 过 schema 校验）→ 独立复核 → 中性报告；结论分 `confirmed / needs_validation / rejected` 三级，压制大模型误报。附十余类攻击知识文档（Web 协议/认证、RPC与序列化、客户端、内存安全与二进制、LLM 提示注入、供应链、云与 IAM、租户隔离等）。官方安装 `npx skills add https://github.com/cloudflare/security-audit-skill --skill security-audit`；**内网离线：直接把仓库文件拷入 `~/.claude/skills/security-audit/` 即可**（skills CLI 只是安装器），校验器为零依赖 .cjs，配合本地 API 完全离线运行 |
 | **anthropics/skills** | [链接](https://github.com/anthropics/skills) | 189.9k | Anthropic 官方技能库（文档处理、webapp-testing、skill-creator 等），无渗透类 |
 | **obra/superpowers** | [链接](https://github.com/obra/superpowers) | 314.7k | 最流行的开发方法论 skills（TDD/调试/系统性计划），提升 agent 工程纪律 |
 | **wshobson/agents** | [链接](https://github.com/wshobson/agents) | 42.3k | 80+ 域 subagent 库，安全类：backend-api-security、security-scanning、incident-response、reverse-engineering 等 |
@@ -382,6 +383,8 @@ sudo apt install build-essential curl jq httpie        # 编译链与调试抓�
 | **gadievron/raptor** | [链接](https://github.com/gadievron/raptor) | 4k | Claude Code 攻防一体 agent 配置（rules + sub-agents + skills） |
 | **NVIDIA/SkillSpector** | [链接](https://github.com/NVIDIA/SkillSpector) | 24.9k | **装任何第三方 skill 前的供应链/提示注入扫描器**——配合本仓库"无投毒"原则，第三方 skills 先过它再上车 |
 | （本仓库自带） | `files/claude/skills/clown-src-skill` | — | 漏洞测试知识库（各类漏洞测试方法），配合 `files/claude/rules/` 白盒/黑盒工作流使用 |
+
+> **组合建议**：security-audit-skill（六阶段审计流程）+ 本地模型底座（Ollama/vLLM）+ claude-code-router/LiteLLM 网关 + 本仓库自带的白盒规则，即可在内网搭一条全自动白盒审计流水线。Cloudflare 官方博客 [Build your own vulnerability harness](https://blog.cloudflare.com/build-your-own-vulnerability-harness) 记录了该 skill 衍生出整套漏洞挖掘系统的架构，值得照着扩。
 
 ### 离线移植总原则
 
