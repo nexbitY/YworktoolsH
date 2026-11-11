@@ -11,7 +11,8 @@
 4. [免费大模型 Token 调研](#免费大模型-token-调研)
 5. [新系统必装软件清单](#新系统必装软件清单)
 6. [内网白盒审计与渗透漏挖工具库](#内网白盒审计与渗透漏挖工具库)
-7. [声明](#声明)
+7. [Shannon / Strix 内网离线渗透测试包（Win11 完整可移植版）](#shannon--strix-内网离线渗透测试包win11-完整可移植版)
+8. [声明](#声明)
 
 ---
 
@@ -391,6 +392,21 @@ sudo apt install build-essential curl jq httpie        # 编译链与调试抓�
 1. **外网备齐**：release 二进制 / jar / shaded 包、`pip download -d` wheels、`docker save` 镜像、模板与字典目录、JDK / .NET / Python 运行时、模型权重文件（gguf/safetensors）。
 2. **内网运行**：一律加离线开关——pip `--no-index`、nuclei `-duc`、trivy `--skip-db-update`、vLLM `HF_HUB_OFFLINE=1`，防止工具自动外联。
 3. **防投毒**：只从上表官方仓库下载 release；避免使用来历不明的镜像/fork；第三方 skills 用 SkillSpector 扫描后再装载。
+
+---
+
+## Shannon / Strix 内网离线渗透测试包（Win11 完整可移植版）
+
+> **场景**：对自有 Web 应用 / SaaS 系统（含桌面客户端逆向出的源码）做 AI 自主渗透测试，在**完全离线的 Win11 内网机**上运行，模型流量直连**本地 API**（vLLM / Ollama / LM Studio / one-api 等 OpenAI 兼容端点），全程不出内网。两个项目均为 2026-11 经 GitHub API 核实的官方仓库。
+
+| 项目 | 仓库 | 版本 | 形态 |
+|---|---|---|---|
+| **Shannon**（白盒+黑盒混合，"No exploit, no report"） | [KeygraphHQ/shannon](https://github.com/KeygraphHQ/shannon)（51.7k★，AGPL-3.0） | CLI 3.5.0 | WSL2 发行版（Ubuntu 24.04 + Docker CE + Node 22 + worker/temporal 镜像预载） |
+| **Strix**（多 agent，代码/黑盒/API 全场景） | [usestrix/strix](https://github.com/usestrix/strix)（74.9k★，Apache-2.0） | 1.7.1 | Windows 原生 exe + WSL Linux 二进制 + 纯 Python 运行时三通道，沙箱镜像预载 |
+
+- **仓库内**：`shannon/` 与 `strix/` 目录保存全部部署脚本（离线装 WSL → 导入发行版 → 配置本地 API 三步）与中英文文档；大文件（WSL 离线 MSI、发行版 tar、exe、Python 运行时）不入 git。
+- **完整离线包**：见 GitHub Release 的 `shannon-offline-win11.zip` 与 `strix-offline-win11.zip`（>2GB 自动分卷），下载全部分卷放同一目录解压合并即可，内网机按包内 `README-内网部署手册.md` 三步部署。
+- ⚠️ 仅限对**自有或已书面授权**的系统使用；两工具都会真实执行漏洞利用。
 
 ---
 

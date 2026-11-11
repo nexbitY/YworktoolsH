@@ -4,3 +4,17 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+
+# Shannon/Strix 离线包：大文件不入库（发行物在 GitHub Release 压缩包中）
+_build/
+_research/
+_tmp/
+*-src/
+shannon/distro/
+strix/distro/
+*.msi
+*.exe
+strix/runtime/
+strix/wheels/*.whl
+wsl-distro/
+*.log
